@@ -20,5 +20,16 @@
   "bugs": {
     "url": "https://github.com/wykotton/flaginfojssdk/issues"
   },
-  "homepage": "https://github.com/wykotton/flaginfojssdk#readme"
+  "homepage": "https://github.com/wykotton/flaginfojssdk#readme",
+  "devDependencies": {
+    "babel-core": "^6.26.3",
+    "babel-preset-es2015": "^6.24.1",
+    "gulp": "^3.9.1",
+    "gulp-babel": "^7.0.1",
+    "gulp-clean": "^0.3.2",
+    "gulp-plumber": "^1.1.0",
+    "gulp-rename": "^1.3.0",
+    "gulp-uglify": "^2.1.0",
+    "gulp-util": "^3.0.8"
+  }
 }

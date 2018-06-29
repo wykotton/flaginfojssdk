@@ -3,17 +3,26 @@
  * (c) 2018-2019 Evan You
  * Released under the MIT License.
  */
-var core_name = 'kot',
-    core_version = "1.0.1";
-// docElem = document.documentElement,
-document.body.style.display = 'none'
-fg = (function(window){
+
+;(function(root, factory) {
+  if (typeof module !== 'undefined' && module.exports) { // CommonJS
+    module.exports = factory();
+  } else if (typeof define === 'function' && define.amd) { // AMD / RequireJS
+    define(factory);
+  } else {
+    root.fg = factory.call(root);
+  }
+}(this, function() {
+  'use strict';
+  function flaginfo() {
+    var core_name = 'kot',
+      core_version = "1.0.1";
     var getProperty = function(pArr) {
       for (var i = pArr.length - 1; i >= 0; i--) {
-        fg['get'+pArr[i].substring(0,1).toUpperCase()+pArr[i].substring(1)] = function(i) {
+        fg['get' + pArr[i].substring(0, 1).toUpperCase() + pArr[i].substring(1)] = function(i) {
           return function() {
             var reqProperty = fg[pArr[i]] || fg.getQueryObject()[pArr[i]]
-            if (!reqProperty) fg.msg('获取'+pArr[i]+'失败,请嵌入企业门户并在fg.ready回调用使用该方法')
+            if (!reqProperty) fg.msg('获取' + pArr[i] + '失败,请嵌入企业门户并在fg.ready回调用使用该方法')
             return reqProperty
           }
         }(i)
@@ -30,33 +39,46 @@ fg = (function(window){
           origColor: '#409EFF'
         }
         this.__proto__ = Object.assign(this.__proto__, initOption)
-        this.sendMessage({t: 'finish', d: {h: document.body.scrollHeight}})
+        this.sendMessage({
+          t: 'finish',
+          d: {
+            h: document.body.scrollHeight
+          }
+        })
       },
-      listenMsg: function(callback) {
+      listenMsg: function(callback, t) {
         var _this = this
-        if (this.token) {
+        if (t === 'ready' && _this.token && typeof(callback) === 'function') {
           callback({
-            token: this.token,
-            theme: this.theme,
-            spId: this.spId,
-            businessType: this.businessType,
-            color: this.color,
-            v: this.version})
-        } else {
+            token: _this.token,
+            theme: _this.theme,
+            spId: _this.spId,
+            businessType: _this.businessType,
+            color: _this.color,
+            v: _this.version
+          })
+        } else if (t === 'ready' && !_this.token) {
           window.addEventListener('message', function(e) {
             if (!e.data.fi) return;
             else _this.__proto__ = Object.assign(_this.__proto__, e.data.fi)
             _this.setTheme(_this.theme, _this.color, _this.v)
             if (typeof callback === 'function') callback(e.data.fi)
           }, false);
+        } else {
+          window.addEventListener('message', function(e) {
+            if (!e.data.fi) return;
+            if (typeof(callback) === 'function') callback(e.data.fi)
+          }, false);
         }
       },
       sendMessage: function(data) {
         // window.frames[0].postMessage('getcolor','http://fg.my.com');
-        window.parent.postMessage({fi: data},'*');
+        window.parent.postMessage({
+          fi: data
+        }, '*');
       },
       cookie: {
-        set: function (name, value, days) {
+        set: function(name, value, days) {
           let d = new Date();
           let hostname = window.location.hostname
           let hostArr = hostname.split('.')
@@ -64,21 +86,28 @@ fg = (function(window){
           d.setTime(d.getTime() + 24 * 60 * 60 * 1000 * days);
           window.document.cookie = name + '=' + value + ';path=/;domain=' + domain + ';expires=' + d.toGMTString();
         },
-        get: function (name) {
+        get: function(name) {
           let v = window.document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
           return v ? v[2] : null;
         },
-        delete: function (name) {
+        delete: function(name) {
           this.set(name, '', -1);
         }
       },
       ready: function(fn) {
         if (window.top === window) this.setTheme()
-        else this.listenMsg(fn)
+        else this.listenMsg(fn, 'ready')
       },
-      hashNavigation: function(name, routerUrl) {
-        console.log(name, routerUrl)
-        this.sendMessage({t: 'hashNavigation', d: {name: name, routerUrl: routerUrl}})
+      hashNavigation: function(obj, fn) {
+        if (!obj.name) return
+        this.sendMessage({
+          t: 'hashNavigation',
+          d: {
+            name: obj.name,
+            routerUrl: obj.routerUrl || ''
+          }
+        })
+        this.listenMsg(fn, 'hashNavigation')
       },
       goto: function(routerUrl) {
         console.log(routerUrl)
@@ -96,16 +125,16 @@ fg = (function(window){
       setTheme: function(pmsTheme, pmsColor, pmsVersion) {
         var reqTheme = pmsTheme || this.getQueryObject().theme
         var reqColor = pmsColor || this.getQueryObject().color
-        // 设置主题
+          // 设置主题
         if (reqTheme) this.theme = reqTheme
         var link = document.createElement('link');
-        link.rel='stylesheet';
-        link.type='text/css';
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
         link.href = '/static/theme/' + this.theme + '/index.css';
         var href = document.getElementsByTagName('head')[0];
         document.head.appendChild(link)
-        // 设置颜色
-        if (reqColor && reqColor !== this.origColor){
+          // 设置颜色
+        if (reqColor && reqColor !== this.origColor) {
           this.setColor(reqColor, this.origColor, pmsVersion)
         } else {
           document.body.style.display = 'block'
@@ -146,7 +175,9 @@ fg = (function(window){
             return new RegExp(oldVal, 'i').test(text) && !/Chalk Variables/.test(text)
           })
         styles.forEach(function(style) {
-          var { innerText } = style
+          var {
+            innerText
+          } = style
           if (typeof innerText !== 'string') return
           style.innerText = _this.updateStyle(innerText, originalCluster, themeCluster)
         })
@@ -253,18 +284,11 @@ fg = (function(window){
         }
       }
     }
-  })(window)
-if ( typeof module === "object" && typeof module.exports === "object" ) {
-  module.exports = fg;
-} else {
-  if ( typeof define === "function" && define.amd ) {
-    define( "fg", [], function () { return fg; } );
   }
-}
-if ( typeof window === "object" && typeof window.document === "object" ) {
-  window.fg = fg;
-}
+  flaginfo = new flaginfo()
+  return flaginfo;
+}));
 fg.initFunction()
-window.onload=function(e){
+window.onload = function(e) {
   fg.init()
 }
