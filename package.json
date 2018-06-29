@@ -1,0 +1,24 @@
+{
+  "name": "flaginfojssdk",
+  "version": "1.0.0",
+  "description": "The flaginfo JSSDK is a necessary tool for the flaginfo platform to communicate with and provide scene capabilities",
+  "main": "sdk.js",
+  "scripts": {
+    "test": "testsdk"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wykotton/flaginfojssdk.git"
+  },
+  "keywords": [
+    "SDK",
+    "flaginfo",
+    "fg"
+  ],
+  "author": "kotton",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wykotton/flaginfojssdk/issues"
+  },
+  "homepage": "https://github.com/wykotton/flaginfojssdk#readme"
+}
