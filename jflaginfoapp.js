@@ -1,10 +1,11 @@
 /*!
- * flaginfojdk.js v1.0.1
+ * jflaginfoapp.js v1.0.7
  * (c) 2018-2019 Evan You
  * Released under the MIT License.
  */
 
-;(function(root, factory) {
+;
+(function(root, factory) {
   if (typeof module !== 'undefined' && module.exports) { // CommonJS
     module.exports = factory();
   } else if (typeof define === 'function' && define.amd) { // AMD / RequireJS
@@ -12,17 +13,28 @@
   } else {
     root.fg = factory.call(root);
   }
-}(this, function() {
+}(window, function() {
   'use strict';
+
   function flaginfo() {
     var core_name = 'kot',
-      core_version = "1.0.1";
+      core_version = "1.0.7",
+      exception = false,
+      option = {
+        chalk: '',
+        theme: 'default',
+        origColor: '#26a2ff'
+      };
+    var initOption = function() {
+      flaginfo.option = option
+      return flaginfo
+    }
     var getProperty = function(pArr) {
       for (var i = pArr.length - 1; i >= 0; i--) {
-        fg['get' + pArr[i].substring(0, 1).toUpperCase() + pArr[i].substring(1)] = function(i) {
+        flaginfo['get' + pArr[i].substring(0, 1).toUpperCase() + pArr[i].substring(1)] = function(i) {
           return function() {
-            var reqProperty = fg[pArr[i]] || fg.getQueryObject()[pArr[i]]
-            if (!reqProperty) fg.msg('获取' + pArr[i] + '失败,请嵌入企业门户并在fg.ready回调用使用该方法')
+            var reqProperty = flaginfo[pArr[i]] || flaginfo.getQueryObject()[pArr[i]]
+            if (!reqProperty) flaginfo.msg('获取' + pArr[i] + '失败,请嵌入企业门户并在fg.ready回调用使用该方法')
             return reqProperty
           }
         }(i)
@@ -30,15 +42,10 @@
     }
     return {
       initFunction: function() {
+        initOption()
         getProperty(['token', 'theme', 'color', 'businessType', 'spId'])
       },
       init: function() {
-        var initOption = {
-          chalk: '',
-          theme: 'default',
-          origColor: '#409EFF'
-        }
-        this.__proto__ = Object.assign(this.__proto__, initOption)
         this.sendMessage({
           t: 'finish',
           d: {
@@ -50,18 +57,18 @@
         var _this = this
         if (t === 'ready' && _this.token && typeof(callback) === 'function') {
           callback({
-            token: _this.token,
-            theme: _this.theme,
-            spId: _this.spId,
-            businessType: _this.businessType,
-            color: _this.color,
-            v: _this.version
+            token: _this.option.token,
+            theme: _this.option.theme,
+            spId: _this.option.spId,
+            businessType: _this.option.businessType,
+            color: _this.option.color,
+            v: _this.option.version
           })
-        } else if (t === 'ready' && !_this.token) {
+        } else if (t === 'ready' && !_this.option.token) {
           window.addEventListener('message', function(e) {
             if (!e.data.fi) return;
-            else _this.__proto__ = Object.assign(_this.__proto__, e.data.fi)
-            _this.setTheme(_this.theme, _this.color, _this.v)
+            else _this.option = Object.assign(_this.option, e.data.fi)
+            _this.setTheme(_this.option.theme, _this.option.color, _this.option.v)
             if (typeof callback === 'function') callback(e.data.fi)
           }, false);
         } else {
@@ -73,9 +80,13 @@
       },
       sendMessage: function(data) {
         // window.frames[0].postMessage('getcolor','http://fg.my.com');
-        window.parent.postMessage({
-          fi: data
-        }, '*');
+        if (window.top === window) {
+          console.log('请嵌入企业门户中使用改方法：' + data.t)
+        } else {
+          window.parent.postMessage({
+            fi: data
+          }, '*');
+        }
       },
       cookie: {
         set: function(name, value, days) {
@@ -95,8 +106,17 @@
         }
       },
       ready: function(fn) {
-        if (window.top === window) this.setTheme()
-        else this.listenMsg(fn, 'ready')
+        try {
+          if (window.top === window) initOption().setTheme()
+          else this.listenMsg(fn, 'ready')
+        } catch(e) {
+          exception = true
+          return this
+        }
+        return this
+      },
+      catch: function(fn) {
+        if (typeof fn === 'function' && exception) fn()
       },
       hashNavigation: function(obj, fn) {
         if (!obj.name) return
@@ -109,11 +129,16 @@
         })
         this.listenMsg(fn, 'hashNavigation')
       },
+      loginOut: function() {
+        this.sendMessage({
+          t: 'loginOut'
+        })
+      },
       goto: function(routerUrl) {
         console.log(routerUrl)
       },
       // getTheme: function() {
-      //   var reqTheme = this.theme || this.getQueryObject().theme
+      //   var reqTheme = this.option.theme || this.getQueryObject().theme
       //   if (!reqTheme) this.msg('请嵌入企业门户并在fg.ready回调用使用该方法')
       //   return reqTheme
       // },
@@ -126,16 +151,16 @@
         var reqTheme = pmsTheme || this.getQueryObject().theme
         var reqColor = pmsColor || this.getQueryObject().color
           // 设置主题
-        if (reqTheme) this.theme = reqTheme
+        if (reqTheme) this.option.theme = reqTheme
         var link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.type = 'text/css';
-        link.href = '/static/theme/' + this.theme + '/index.css';
+        // link.type = 'text/css';
+        link.href = '/static/theme/' + this.option.theme + '/index.css';
         var href = document.getElementsByTagName('head')[0];
         document.head.appendChild(link)
           // 设置颜色
-        if (reqColor && reqColor !== this.origColor) {
-          this.setColor(reqColor, this.origColor, pmsVersion)
+        if (reqColor && reqColor !== this.option.origColor) {
+          this.setColor(reqColor, this.option.origColor, pmsVersion)
         } else {
           document.body.style.display = 'block'
         }
@@ -147,7 +172,7 @@
         var _this = this
         var getHandler = function(variable, id) {
           return function() {
-            var originalCluster = _this.getThemeCluster(_this.origColor.replace('#', ''))
+            var originalCluster = _this.getThemeCluster(_this.option.origColor.replace('#', ''))
             var newStyle = _this.updateStyle(_this[variable], originalCluster, themeCluster)
 
             let styleTag = document.getElementById(id)
@@ -162,8 +187,9 @@
 
         var chalkHandler = getHandler('chalk', 'chalk-style')
         var version = pmsVersion || this.getQueryObject().v
-        if (!this.chalk) {
-          var url = `https://unpkg.com/element-ui@${version}/lib/theme-chalk/index.css`
+        if (!this.option.chalk) {
+          // var url = `https://unpkg.com/mint-ui/lib/style.css`
+          var url = `https://unpkg.com/mint-ui@2.2.13/lib/style.css`
           this.getCSSString(url, chalkHandler, 'chalk')
         } else {
           chalkHandler()
@@ -286,9 +312,10 @@
     }
   }
   flaginfo = new flaginfo()
+
+  flaginfo.initFunction()
+  window.onload = function(e) {
+    flaginfo.init()
+  }
   return flaginfo;
 }));
-fg.initFunction()
-window.onload = function(e) {
-  fg.init()
-}

@@ -1,8 +1,8 @@
 {
   "name": "flaginfojssdk",
-  "version": "1.0.0",
+  "version": "1.0.7",
   "description": "The flaginfo JSSDK is a necessary tool for the flaginfo platform to communicate with and provide scene capabilities",
-  "main": "sdk.js",
+  "main": "dist/jflaginfopc.min.js",
   "scripts": {
     "test": "testsdk"
   },

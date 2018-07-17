@@ -12,7 +12,7 @@ gulp.task('server', ['js'], function() {
 
 /*js*/
 gulp.task('js',function(){
-    gulp.src(['sdk.js'])
+    gulp.src(['jflaginfopc.js', 'jflaginfoapp.js', 'com.js'])
         .pipe(babel({
             presets: ['es2015'] // es5检查机制
         }))
