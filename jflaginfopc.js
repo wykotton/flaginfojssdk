@@ -1,5 +1,5 @@
 /*!
- * jflaginfopc.js v1.0.8
+ * jflaginfopc.js v1.0.9
  * (c) 2018-2019 Evan You
  * Released under the MIT License.
  */
@@ -18,7 +18,7 @@
 
   function flaginfo() {
     var core_name = 'kot',
-      core_version = "1.0.8",
+      core_version = "1.0.9",
       exception = false,
       option = {
         chalk: '',
@@ -43,7 +43,7 @@
     return {
       initFunction: function() {
         initOption()
-        getProperty(['token', 'theme', 'color', 'businessType', 'spId'])
+        getProperty(['token','userInfo','appId', 'theme', 'color', 'businessType', 'spId'])
       },
       init: function() {
         this.sendMessage({
@@ -55,9 +55,11 @@
       },
       listenMsg: function(callback, t) {
         var _this = this
-        if (t === 'ready' && _this.token && typeof(callback) === 'function') {
+        if (t === 'ready' && _this.token && typeof callback === 'function') {
           callback({
             token: _this.option.token,
+            appId: _this.option.appId,
+            userInfo: _this.option.userInfo,
             theme: _this.option.theme,
             spId: _this.option.spId,
             businessType: _this.option.businessType,
@@ -74,7 +76,7 @@
         } else {
           window.addEventListener('message', function(e) {
             if (!e.data.fi) return;
-            if (typeof(callback) === 'function') callback(e.data.fi)
+            if (typeof callback === 'function') callback(e.data.fi)
           }, false);
         }
       },
