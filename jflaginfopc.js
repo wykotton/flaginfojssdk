@@ -1,5 +1,5 @@
 /*!
- * jflaginfopc.js v1.0.9
+ * jflaginfopc.js v1.1.4
  * (c) 2018-2019 Evan You
  * Released under the MIT License.
  */
@@ -18,12 +18,18 @@
 
   function flaginfo() {
     var core_name = 'kot',
-      core_version = "1.0.9",
+      core_version = "1.1.4",
       exception = false,
       option = {
         chalk: '',
         theme: 'default',
-        origColor: '#409EFF'
+        origColor: '#409EFF',
+        broHis: [],
+        routertState: false,
+        broHisFrom: '',
+        broHisTo: '',
+        broState: false,
+        broDirection: ''
       };
     var initOption = function() {
       flaginfo.option = option
@@ -40,45 +46,52 @@
         }(i)
       }
     }
+    var isfun = function(fun) {
+      return typeof fun === 'function'
+    }
     return {
       initFunction: function() {
         initOption()
-        getProperty(['token','userInfo','appId', 'theme', 'color', 'businessType', 'spId'])
+        getProperty(['token','userInfo','appId', 'moduleId', 'theme', 'color', 'businessType', 'spId'])
       },
       init: function() {
         this.sendMessage({
           t: 'finish',
           d: {
+            href: window.location.origin + window.location.pathname,
             h: document.body.scrollHeight
           }
         })
       },
       listenMsg: function(callback, t) {
         var _this = this
-        if (t === 'ready' && _this.token && typeof callback === 'function') {
-          callback({
-            token: _this.option.token,
-            appId: _this.option.appId,
-            userInfo: _this.option.userInfo,
-            theme: _this.option.theme,
-            spId: _this.option.spId,
-            businessType: _this.option.businessType,
-            color: _this.option.color,
-            v: _this.option.version
-          })
-        } else if (t === 'ready' && !_this.option.token) {
-          window.addEventListener('message', function(e) {
-            if (!e.data.fi) return;
-            else _this.option = Object.assign(_this.option, e.data.fi)
+        window.addEventListener('message', function(e) {
+          var fi = e.data.fi
+          if (!fi) return;
+          if (t === 'ready' && _this.option.token && isfun(callback)) {
+            callback({
+              token: _this.option.token,
+              appId: _this.option.appId,
+              userInfo: _this.option.userInfo,
+              theme: _this.option.theme,
+              spId: _this.option.spId,
+              moduleId: _this.option.moduleId,
+              businessType: _this.option.businessType,
+              color: _this.option.color,
+              v: _this.option.version
+            })
+          } else if (t === 'ready' && !_this.option.token) {
+            _this.option = Object.assign(_this.option, e.data.fi)
             _this.setTheme(_this.option.theme, _this.option.color, _this.option.v)
-            if (typeof callback === 'function') callback(e.data.fi)
-          }, false);
-        } else {
-          window.addEventListener('message', function(e) {
-            if (!e.data.fi) return;
-            if (typeof callback === 'function') callback(e.data.fi)
-          }, false);
-        }
+            if (isfun(callback)) return callback(fi)
+          } else {
+            if (isfun(callback)) return callback(fi)
+            if (typeof callback !== 'undefined') {
+              if (fi.success && isfun(callback.onSuccess)) callback.onSuccess(fi.obj)
+              if (!fi.success && isfun(callback.onFail)) callback.onFail(fi.obj)
+            }
+          }
+        }, false);
       },
       sendMessage: function(data) {
         // window.frames[0].postMessage('getcolor','http://fg.my.com');
@@ -118,26 +131,52 @@
         return this
       },
       catch: function(fn) {
-        if (typeof fn === 'function' && exception) fn()
+        if (typeof fn === 'function' && exception) {
+          exception = true
+          fn()
+        }
+      },
+      MF: function(fName, obj, fn) {
+        try {
+          this.sendMessage({
+            t: fName,
+            d: obj
+          })
+          this.listenMsg(fn, fName)
+        } catch(e) {
+          console.log(e)
+          exception = true
+          return this
+        }
+        return this
       },
       hashNavigation: function(obj, fn) {
-        if (!obj.name) return
-        this.sendMessage({
-          t: 'hashNavigation',
-          d: {
-            name: obj.name,
-            routerUrl: obj.routerUrl || ''
-          }
-        })
-        this.listenMsg(fn, 'hashNavigation')
+        this.MF('hashNavigation', obj, fn)
+        // if (!obj.name) return
+        // this.sendMessage({
+        //   t: 'hashNavigation',
+        //   d: obj
+        //   // d: {
+        //   //   name: obj.name,
+        //   //   routerUrl: obj.routerUrl || ''
+        //   // }
+        //   // d: {
+        //   //   nav: [{}]
+        //   // }
+        // })
+        // this.listenMsg(fn, 'hashNavigation')
       },
       loginOut: function() {
         this.sendMessage({
           t: 'loginOut'
         })
       },
-      goto: function(routerUrl) {
-        console.log(routerUrl)
+      goto: function(title) {
+        this.sendMessage({
+          t: 'goto',
+          d: title
+        })
+        // console.log(routerUrl)
       },
       // getTheme: function() {
       //   var reqTheme = this.option.theme || this.getQueryObject().theme
@@ -309,14 +348,85 @@
             console.log("%cError from fg：" + text, "color: #F56C6C")
             break;
         }
+      },
+      // 监听子场景路由变化
+      routerState: function(to, from) {
+        var _this = this
+        this.option.broHisFrom = from.fullPath
+        this.option.broHisTo = to.fullPath
+        var formatToData = {
+          meta: {
+            title: to.meta.title
+          },
+          path: to.fullPath
+        }
+        var formatFromData = {
+          meta: {
+            title: from.meta.title
+          },
+          path: from.fullPath
+        }
+        this.routertState = true
+        this.option.broHis.push(this.option.broHisTo)
+        setTimeout(function() {
+          _this.MF('routerState', {
+            direction: _this.option.broDirection,
+            to: formatToData,
+            from: formatFromData
+          })
+          _this.option.broDirection = ''
+        }, 60)
+      },
+      // 监听返回
+      historyListening: function(type, text) {
+        var _this = this
+        if (window.history && window.history.pushState) {
+          //popstate事件在浏览器操作时触发, 比如点击后退按钮(或者在JavaScript中调用history.back()方法).
+          window.onpopstate = function(e) {
+            // window.history.pushState('forward', null, '#');
+            // window.history.forward(1);
+            // if (_this.option.broHis === ) {}
+            // console.log(_this.option.broHis)
+            // routertState
+            var waitRS = setInterval(function() {
+              if (_this.routertState) {
+                if (!_this.option.broState) {
+                  _this.option.broHis = [_this.option.broHisFrom, _this.option.broHisTo]
+                  _this.option.broState = true
+                  _this.hashNavigation('back')
+                  _this.option.broDirection = 'back'
+                } else {
+                  if (window.location.hash.split('#')[1] === _this.option.broHis[_this.option.broHis.length - 2]) {
+                     // 前进
+                    _this.option.broHis.pop()
+                    _this.hashNavigation('forward')
+                    _this.option.broDirection = 'forward'
+                  } else {
+                     // 后退
+                    // _this.option.broHis.push(_this.option.broHisTo)
+                    _this.hashNavigation('back')
+                    _this.option.broDirection = 'back'
+                  }
+                }
+                _this.routertState = false
+                window.clearInterval(waitRS)
+              }
+            }, 500)
+            // _this.hashNavigation('back')
+              // alert("不可回退");  //如果需在弹框就有它
+              // self.location = "xx.html"; //如查需要跳转页面就用它
+          };
+        }
+        // window.history.pushState('forward', null, '#'); //在IE中必须得有这两行
+        // window.history.forward(1);
       }
     }
   }
   flaginfo = new flaginfo()
-
   flaginfo.initFunction()
   window.onload = function(e) {
     flaginfo.init()
+    flaginfo.historyListening()
   }
   return flaginfo;
 }));

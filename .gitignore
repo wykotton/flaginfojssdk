@@ -1,1 +1,6 @@
 /node_modules
+/test
+com.js
+gulpfile.js
+jflaginfoapp.js
+jflaginfopc.js

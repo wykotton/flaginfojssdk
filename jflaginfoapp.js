@@ -1,5 +1,5 @@
 /*!
- * jflaginfoapp.js v1.0.8
+ * jflaginfoapp.js v1.1.3
  * (c) 2018-2019 Evan You
  * Released under the MIT License.
  */
@@ -18,7 +18,7 @@
 
   function flaginfo() {
     var core_name = 'kot',
-      core_version = "1.0.8",
+      core_version = "1.1.3",
       exception = false,
       option = {
         chalk: '',

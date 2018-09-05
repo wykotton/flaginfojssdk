@@ -1,6 +1,6 @@
 {
   "name": "flaginfojssdk",
-  "version": "1.0.9",
+  "version": "1.1.4",
   "description": "The flaginfo JSSDK is a necessary tool for the flaginfo platform to communicate with and provide scene capabilities",
   "main": "index.js",
   "scripts": {
